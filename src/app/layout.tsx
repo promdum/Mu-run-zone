@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans_Thai } from "next/font/google";
+import { Suspense } from "react";
 import { RunsProvider } from "@/components/RunsProvider";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -20,12 +21,24 @@ export const metadata: Metadata = {
     "ชุมชนวิ่งเพื่อสุขภาพ ความสนุก และความสามัคคี ของนักศึกษาและบุคลากรมหาวิทยาลัยมหิดล วิทยาเขตศาลายา",
 };
 
+function HeaderFallback() {
+  return (
+    <header className="sticky top-0 z-40 border-b border-cyan-300/15 bg-[#06122b]/85 backdrop-blur-xl">
+      <div className="mx-auto flex h-[68px] max-w-6xl items-center px-4">
+        <span className="text-sm font-black tracking-[0.18em] text-amber-300">MU RUN ZONE</span>
+      </div>
+    </header>
+  );
+}
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="th" className={`${thai.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
         <RunsProvider>
-          <SiteHeader />
+          <Suspense fallback={<HeaderFallback />}>
+            <SiteHeader />
+          </Suspense>
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
           <SiteFooter />
         </RunsProvider>

@@ -4,7 +4,7 @@ import { encodeRunnerSlug, FACULTIES } from "@/lib/faculties";
 import { formatDate, formatDuration, formatKm, formatPace } from "@/lib/format";
 import type { RunStatus } from "@/lib/types";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { StatusBadge } from "./StatusBadge";
 import { useStandings } from "./RunsProvider";
 
@@ -15,6 +15,8 @@ export function RunfeedList({ highlightId }: { highlightId?: string }) {
   const [faculty, setFaculty] = useState("all");
   const [status, setStatus] = useState<"all" | RunStatus>("all");
   const [page, setPage] = useState(0);
+  const [pageFilter, setPageFilter] = useState("|all|all");
+  const [highlightPinned, setHighlightPinned] = useState(true);
   const pageSize = 8;
 
   const filtered = useMemo(() => {
@@ -28,18 +30,13 @@ export function RunfeedList({ highlightId }: { highlightId?: string }) {
     });
   }, [feedRuns, query, faculty, status]);
 
-  useEffect(() => {
-    setPage(0);
-  }, [query, faculty, status]);
-
-  useEffect(() => {
-    if (!highlightId) return;
-    const index = filtered.findIndex((run) => run.id === highlightId);
-    if (index >= 0) setPage(Math.floor(index / pageSize));
-  }, [highlightId, filtered]);
-
+  const filterKey = `${query}|${faculty}|${status}`;
+  const highlightIndex = highlightId ? filtered.findIndex((run) => run.id === highlightId) : -1;
+  const highlightPage = highlightIndex >= 0 ? Math.floor(highlightIndex / pageSize) : null;
+  const pinned = Boolean(highlightId) && highlightPinned && highlightPage !== null;
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const currentPage = Math.min(page, pageCount - 1);
+  const requestedPage = pinned ? highlightPage : pageFilter === filterKey ? page : 0;
+  const currentPage = Math.min(requestedPage, pageCount - 1);
   const pageItems = filtered.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
 
   if (!ready) return <p className="text-white/60">กำลังโหลด Runfeed...</p>;
@@ -150,7 +147,12 @@ export function RunfeedList({ highlightId }: { highlightId?: string }) {
             type="button"
             className="rounded-full border border-white/15 px-4 py-2 disabled:opacity-40"
             disabled={currentPage === 0}
-            onClick={() => setPage((value) => Math.max(0, value - 1))}
+            onClick={() => {
+              const base = pinned ? (highlightPage ?? 0) : pageFilter === filterKey ? page : 0;
+              setHighlightPinned(false);
+              setPageFilter(filterKey);
+              setPage(Math.max(0, base - 1));
+            }}
           >
             ก่อนหน้า
           </button>
@@ -161,7 +163,12 @@ export function RunfeedList({ highlightId }: { highlightId?: string }) {
             type="button"
             className="rounded-full border border-white/15 px-4 py-2 disabled:opacity-40"
             disabled={currentPage >= pageCount - 1}
-            onClick={() => setPage((value) => value + 1)}
+            onClick={() => {
+              const base = pinned ? (highlightPage ?? 0) : pageFilter === filterKey ? page : 0;
+              setHighlightPinned(false);
+              setPageFilter(filterKey);
+              setPage(base + 1);
+            }}
           >
             ถัดไป
           </button>

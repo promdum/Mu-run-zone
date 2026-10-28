@@ -1,5 +1,6 @@
 import { SubmitForm } from "@/components/SubmitForm";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "บันทึกการวิ่ง",
@@ -16,7 +17,9 @@ export default function SubmitPage() {
           ผลจะขึ้น Runfeed เป็น Pending และนับเข้าลีดเดอร์บอร์ดเมื่อผู้ดูแลอนุมัติ
         </p>
       </header>
-      <SubmitForm />
+      <Suspense fallback={<p className="text-white/60">กำลังเปิดฟอร์ม...</p>}>
+        <SubmitForm />
+      </Suspense>
     </div>
   );
 }

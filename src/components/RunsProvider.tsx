@@ -52,7 +52,9 @@ export function RunsProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [bootError, setBootError] = useState("");
   const runsRef = useRef(runs);
-  runsRef.current = runs;
+  useEffect(() => {
+    runsRef.current = runs;
+  }, [runs]);
 
   useEffect(() => {
     let cancel = false;

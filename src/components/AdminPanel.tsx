@@ -3,7 +3,7 @@
 import { formatDate, formatDuration, formatKm, formatPace, parseHms, splitDuration } from "@/lib/format";
 import { detectFlags } from "@/lib/moderation";
 import type { RunEntry } from "@/lib/types";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { LoginForm } from "./AuthScreens";
 import { StatusBadge } from "./StatusBadge";
 import { useRuns } from "./RunsProvider";
@@ -28,6 +28,7 @@ export function AdminPanel() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [busyId, setBusyId] = useState("");
   const [page, setPage] = useState(0);
+  const [pageFilter, setPageFilter] = useState("pending||false");
 
   const pendingCount = runs.filter((run) => run.status === "pending").length;
   const flaggedCount = runs.filter((run) => run.flags.length > 0 && run.status === "pending").length;
@@ -51,13 +52,10 @@ export function AdminPanel() {
       });
   }, [runs, tab, query, flaggedOnly]);
 
-  useEffect(() => {
-    setPage(0);
-  }, [tab, query, flaggedOnly]);
-
+  const filterKey = `${tab}|${query}|${flaggedOnly}`;
   const pageSize = 8;
   const pageCount = Math.max(1, Math.ceil(visible.length / pageSize));
-  const currentPage = Math.min(page, pageCount - 1);
+  const currentPage = Math.min(pageFilter === filterKey ? page : 0, pageCount - 1);
   const pageItems = visible.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
 
   if (!ready) return <p className="text-white/60">กำลังเปิดแผงผู้ดูแล...</p>;
@@ -338,7 +336,11 @@ export function AdminPanel() {
             type="button"
             className="rounded-full border border-white/15 px-4 py-2 disabled:opacity-40"
             disabled={currentPage === 0}
-            onClick={() => setPage((value) => Math.max(0, value - 1))}
+            onClick={() => {
+              const base = pageFilter === filterKey ? page : 0;
+              setPageFilter(filterKey);
+              setPage(Math.max(0, base - 1));
+            }}
           >
             ก่อนหน้า
           </button>
@@ -349,7 +351,11 @@ export function AdminPanel() {
             type="button"
             className="rounded-full border border-white/15 px-4 py-2 disabled:opacity-40"
             disabled={currentPage >= pageCount - 1}
-            onClick={() => setPage((value) => value + 1)}
+            onClick={() => {
+              const base = pageFilter === filterKey ? page : 0;
+              setPageFilter(filterKey);
+              setPage(base + 1);
+            }}
           >
             ถัดไป
           </button>

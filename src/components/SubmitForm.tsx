@@ -6,7 +6,7 @@ import { compressImage } from "@/lib/storage";
 import type { RunEntry } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useRuns } from "./RunsProvider";
 
 function nowLocalInput() {
@@ -18,7 +18,8 @@ function nowLocalInput() {
 export function SubmitForm() {
   const router = useRouter();
   const { ready, user, submitRun } = useRuns();
-  const [team, setTeam] = useState(user?.team ?? "");
+  const [team, setTeam] = useState("");
+  const [teamEdited, setTeamEdited] = useState(false);
   const [distance, setDistance] = useState("");
   const [hours, setHours] = useState("0");
   const [minutes, setMinutes] = useState("");
@@ -30,9 +31,7 @@ export function SubmitForm() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (user?.team) setTeam((current) => current || user.team || "");
-  }, [user]);
+  const teamValue = teamEdited ? team : (user?.team ?? "");
 
   const durationSec = parseHms(Number(hours) || 0, Number(minutes) || 0, Number(seconds) || 0);
   const km = Number(distance);
@@ -111,7 +110,7 @@ export function SubmitForm() {
       userId: user.id,
       name: user.name,
       faculty: user.faculty,
-      team: team.trim() || undefined,
+      team: teamValue.trim() || undefined,
       distanceKm: km,
       durationSec,
       paceSecPerKm: paceSec,
@@ -147,8 +146,11 @@ export function SubmitForm() {
 
       <Field label="ทีม (ถ้ามี)">
         <input
-          value={team}
-          onChange={(event) => setTeam(event.target.value)}
+          value={teamValue}
+          onChange={(event) => {
+            setTeamEdited(true);
+            setTeam(event.target.value);
+          }}
           className="input"
           placeholder="ชมรม รุ่น หรือทีมวิ่ง"
         />

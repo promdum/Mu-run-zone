@@ -1,6 +1,7 @@
 import { RunnerProfile } from "@/components/RunnerProfile";
 import { decodeRunnerSlug } from "@/lib/faculties";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export async function generateMetadata({
   params,
@@ -12,11 +13,19 @@ export async function generateMetadata({
   return { title: identity?.name ?? "นักวิ่ง" };
 }
 
-export default async function RunnerPage({
+async function RunnerContent({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  return <RunnerProfile slug={slug} />;
+}
+
+export default function RunnerPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
-  return <RunnerProfile slug={slug} />;
+  return (
+    <Suspense fallback={<p className="text-white/60">กำลังโหลดโปรไฟล์นักวิ่ง...</p>}>
+      <RunnerContent params={params} />
+    </Suspense>
+  );
 }
