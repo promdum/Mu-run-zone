@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+:root {
+  --background: #07101f;
+  --foreground: #f6f3ea;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-thai);
+}
+
+body {
+  background:
+    linear-gradient(rgba(120, 170, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 170, 255, 0.05) 1px, transparent 1px),
+    radial-gradient(900px 420px at 8% -10%, rgba(245, 197, 66, 0.18), transparent 55%),
+    radial-gradient(800px 380px at 100% 0%, rgba(34, 211, 238, 0.16), transparent 48%),
+    var(--background);
+  background-size: 56px 56px, 56px 56px, auto, auto, auto;
+  color: var(--foreground);
+  font-family: var(--font-thai), "IBM Plex Sans Thai", sans-serif;
+  min-height: 100vh;
+}
+
+.input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(4, 11, 28, 0.7);
+  padding: 0.75rem 1rem;
+  color: white;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #f5c542;
+  box-shadow: 0 0 0 3px rgba(245, 197, 66, 0.15);
+}
+
+.track-line {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(245, 197, 66, 0.9) 0 18px,
+    transparent 18px 28px
+  );
+}
+
+.rank-aura {
+  position: relative;
+  isolation: isolate;
+}
+
+.rank-aura::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 12% 8%;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--rank-glow, rgba(245, 197, 66, 0.45)), transparent 68%);
+  filter: blur(10px);
+  transform: scale(1.08);
+}
+
+.rank-shield-img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  border-radius: 1.25rem;
+  box-shadow:
+    0 16px 30px rgba(0, 0, 0, 0.45),
+    0 0 24px var(--rank-glow, rgba(245, 197, 66, 0.35));
+}
