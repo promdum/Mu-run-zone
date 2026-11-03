@@ -1,6 +1,13 @@
 "use client";
 
 import { ADMIN_MAHIDOL_ID, hashPassword, mahidolIdError, normalizeMahidolId } from "@/lib/auth";
+import { formatKm } from "@/lib/format";
+import {
+  noticeFromRun,
+  saveApprovalNotices,
+  takeApprovalNotices,
+  type ApprovalNotice,
+} from "@/lib/notices";
 import { facultyStandings, runnerStandings, teamStandings } from "@/lib/ranks";
 import {
   bootstrapStore,
@@ -41,6 +48,7 @@ type RunsContextValue = {
   submitRun: (run: RunEntry) => Promise<void>;
   updateRun: (run: RunEntry) => Promise<void>;
   approveRun: (id: string) => Promise<void>;
+  approveCleanRuns: () => Promise<number>;
   deleteRun: (id: string) => Promise<void>;
 };
 
@@ -51,10 +59,36 @@ export function RunsProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserAccount | null>(null);
   const [ready, setReady] = useState(false);
   const [bootError, setBootError] = useState("");
+  const [toasts, setToasts] = useState<ApprovalNotice[]>([]);
   const runsRef = useRef(runs);
+  const userRef = useRef(user);
   useEffect(() => {
     runsRef.current = runs;
   }, [runs]);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  function showApprovals(saved: RunEntry[]) {
+    const immediate: ApprovalNotice[] = [];
+    const later: ApprovalNotice[] = [];
+    for (const run of saved) {
+      const notice = noticeFromRun(run);
+      if (!notice) continue;
+      if (userRef.current?.id === run.userId) immediate.push(notice);
+      else later.push(notice);
+    }
+    saveApprovalNotices(later);
+    if (immediate.length > 0) {
+      setToasts((current) => [...immediate, ...current].slice(0, 4));
+    }
+  }
+
+  function openStoredApprovals(userId: string) {
+    const stored = takeApprovalNotices(userId);
+    if (stored.length === 0) return;
+    setToasts((current) => [...stored, ...current].slice(0, 4));
+  }
 
   useEffect(() => {
     let cancel = false;
@@ -63,6 +97,7 @@ export function RunsProvider({ children }: { children: ReactNode }) {
         if (cancel) return;
         setRuns(data.runs);
         setUser(data.user);
+        if (data.user) openStoredApprovals(data.user.id);
         setReady(true);
       })
       .catch((error: unknown) => {
@@ -114,6 +149,7 @@ export function RunsProvider({ children }: { children: ReactNode }) {
     if (hash !== account.passwordHash) return { ok: false, error: "รหัสผ่านไม่ถูกต้อง" };
     writeSessionId(account.id);
     setUser(account);
+    openStoredApprovals(account.id);
     return { ok: true, user: account };
   }, []);
 
@@ -143,7 +179,27 @@ export function RunsProvider({ children }: { children: ReactNode }) {
     if (!current) return;
     const saved: RunEntry = { ...current, status: "verified" };
     await putRun(saved);
+    runsRef.current = runsRef.current.map((item) => (item.id === id ? saved : item));
     setRuns((prev) => prev.map((item) => (item.id === id ? saved : item)));
+    showApprovals([saved]);
+  }, []);
+
+  const approveCleanRuns = useCallback(async () => {
+    const targets = runsRef.current.filter((item) => item.status === "pending" && item.flags.length === 0);
+    if (targets.length === 0) return 0;
+    const saved = targets.map((item) => ({ ...item, status: "verified" as const }));
+    for (const run of saved) await putRun(run);
+    const ids = new Set(saved.map((item) => item.id));
+    runsRef.current = runsRef.current.map((item) =>
+      ids.has(item.id) ? { ...item, status: "verified" as const } : item,
+    );
+    setRuns((prev) => prev.map((item) => (ids.has(item.id) ? { ...item, status: "verified" as const } : item)));
+    showApprovals(saved);
+    return saved.length;
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((current) => current.filter((item) => item.id !== id));
   }, []);
 
   const deleteRun = useCallback(async (id: string) => {
@@ -163,6 +219,7 @@ export function RunsProvider({ children }: { children: ReactNode }) {
       submitRun,
       updateRun,
       approveRun,
+      approveCleanRuns,
       deleteRun,
     }),
     [
@@ -176,6 +233,7 @@ export function RunsProvider({ children }: { children: ReactNode }) {
       submitRun,
       updateRun,
       approveRun,
+      approveCleanRuns,
       deleteRun,
     ],
   );
@@ -186,7 +244,44 @@ export function RunsProvider({ children }: { children: ReactNode }) {
         <p className="bg-rose-500/15 px-4 py-3 text-center text-sm text-rose-100">{bootError}</p>
       ) : null}
       {children}
+      <ApprovalToasts notices={toasts} onDismiss={dismissToast} />
     </RunsContext.Provider>
+  );
+}
+
+function ApprovalToasts({
+  notices,
+  onDismiss,
+}: {
+  notices: ApprovalNotice[];
+  onDismiss: (id: string) => void;
+}) {
+  useEffect(() => {
+    if (notices.length === 0) return;
+    const oldest = notices[notices.length - 1];
+    const timer = window.setTimeout(() => onDismiss(oldest.id), 7000);
+    return () => window.clearTimeout(timer);
+  }, [notices, onDismiss]);
+
+  if (notices.length === 0) return null;
+  return (
+    <div className="pointer-events-none fixed right-4 bottom-4 z-50 flex w-[min(100%-2rem,22rem)] flex-col gap-2">
+      {notices.map((notice) => (
+        <div
+          key={notice.id}
+          className="pointer-events-auto rounded-2xl border border-emerald-300/50 bg-[#062117]/95 px-4 py-3 text-sm text-emerald-50 shadow-[0_12px_40px_rgba(16,185,129,0.25)]"
+          role="status"
+        >
+          <p className="font-bold">ผลวิ่งได้รับการอนุมัติแล้ว</p>
+          <p className="mt-1 text-emerald-100/80">
+            {formatKm(notice.distanceKm)} นับเข้าลีดเดอร์บอร์ดของ {notice.faculty}
+          </p>
+          <button type="button" className="mt-2 text-xs text-emerald-200 underline" onClick={() => onDismiss(notice.id)}>
+            ปิด
+          </button>
+        </div>
+      ))}
+    </div>
   );
 }
 

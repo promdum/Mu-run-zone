@@ -17,7 +17,7 @@ type Draft = {
 };
 
 export function AdminPanel() {
-  const { ready, user, runs, approveRun, deleteRun, updateRun } = useRuns();
+  const { ready, user, runs, approveRun, approveCleanRuns, deleteRun, updateRun } = useRuns();
   const [tab, setTab] = useState<"pending" | "verified">("pending");
   const [query, setQuery] = useState("");
   const [flaggedOnly, setFlaggedOnly] = useState(false);
@@ -32,6 +32,7 @@ export function AdminPanel() {
 
   const pendingCount = runs.filter((run) => run.status === "pending").length;
   const flaggedCount = runs.filter((run) => run.flags.length > 0 && run.status === "pending").length;
+  const cleanCount = runs.filter((run) => run.status === "pending" && run.flags.length === 0).length;
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -133,6 +134,24 @@ export function AdminPanel() {
     }
   }
 
+  async function onApproveClean() {
+    if (cleanCount === 0) return;
+    const ok = window.confirm(
+      `อนุมัติ ${cleanCount} รายการที่ผ่านเกณฑ์ตรวจทุจริต? รายการที่ถูกตั้งธงจะยังรอตรวจอยู่`,
+    );
+    if (!ok) return;
+    setBusyId("approve-all");
+    setError("");
+    try {
+      const count = await approveCleanRuns();
+      setMessage(count > 0 ? `อนุมัติ ${count} รายการที่ผ่านเกณฑ์แล้ว` : "ไม่มีรายการที่ผ่านเกณฑ์ให้อนุมัติ");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "อนุมัติทั้งหมดไม่สำเร็จ");
+    } finally {
+      setBusyId("");
+    }
+  }
+
   async function onDelete(run: RunEntry) {
     const ok = window.confirm(`ลบผลวิ่งของ ${run.name} ถาวร? ระยะนี้จะไม่ถูกนับ`);
     if (!ok) return;
@@ -167,6 +186,14 @@ export function AdminPanel() {
         <TabButton active={tab === "verified"} onClick={() => setTab("verified")}>
           อนุมัติแล้ว
         </TabButton>
+        <button
+          type="button"
+          disabled={cleanCount === 0 || busyId === "approve-all"}
+          onClick={onApproveClean}
+          className="rounded-full bg-emerald-300 px-4 py-2 text-sm font-bold text-[#062117] disabled:opacity-40"
+        >
+          {busyId === "approve-all" ? "กำลังอนุมัติ..." : `Approve All (${cleanCount})`}
+        </button>
         <button
           type="button"
           onClick={() => setFlaggedOnly((value) => !value)}

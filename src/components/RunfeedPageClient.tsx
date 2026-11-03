@@ -14,7 +14,7 @@ export function RunfeedPageClient() {
           <p className="text-xs tracking-[0.3em] text-amber-300 uppercase">Personal Feed</p>
           <h1 className="mt-2 text-3xl font-black md:text-4xl">Runfeed</h1>
           <p className="mt-2 max-w-2xl text-white/70">
-            ฟีดรายบุคคล โชว์ชื่อ เพซ ระยะทาง และเวลารวม พร้อมรูปหลักฐานจากแอปนับการวิ่ง
+            การ์ดผลวิ่งขึ้นฟีดทันที รายการที่ยังไม่ตรวจมีป้ายเหลืองว่า รอตรวจสอบ และยังไม่นับเข้าลีดเดอร์บอร์ดจนกว่าผู้ดูแลจะอนุมัติ
           </p>
         </div>
         <Link

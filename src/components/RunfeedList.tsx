@@ -92,7 +92,11 @@ export function RunfeedList({ highlightId }: { highlightId?: string }) {
             <article
               key={run.id}
               className={`grid gap-4 rounded-3xl border p-4 md:grid-cols-[160px_1fr] ${
-                highlightId === run.id ? "border-amber-300 bg-amber-300/10" : "border-white/10 bg-white/5"
+                highlightId === run.id
+                  ? "border-amber-300 bg-amber-300/10"
+                  : run.status === "pending"
+                    ? "border-amber-300/70 bg-amber-300/10"
+                    : "border-white/10 bg-white/5"
               }`}
             >
               {run.proofImage ? (
