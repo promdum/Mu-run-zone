@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { getPrisma } from "@/lib/db";
+import { findUserById } from "@/lib/records";
 const COOKIE = "mu-runzone-session";
 
 function secret() {
@@ -29,8 +29,7 @@ export async function currentUser() {
   const jar = await cookies();
   const userId = readSessionUserId(jar.get(COOKIE)?.value);
   if (!userId) return null;
-  const prisma = await getPrisma();
-  return prisma.user.findUnique({ where: { id: userId } });
+  return findUserById(userId);
 }
 
 export async function setSessionCookie(userId: string) {

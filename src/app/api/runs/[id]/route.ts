@@ -1,7 +1,7 @@
 import { calcPaceSec } from "@/lib/format";
 import { json, liveRequest } from "@/lib/http";
 import { detectFlags } from "@/lib/moderation";
-import { getPrisma } from "@/lib/db";
+import { findRun, removeRun, updateRun } from "@/lib/records";
 import { toRunEntry } from "@/lib/run-record";
 import { currentUser } from "@/lib/session";
 
@@ -18,13 +18,12 @@ export async function PATCH(request: Request, { params }: Params) {
     calories?: number;
     approve?: boolean;
   };
-  const prisma = await getPrisma();
-  const current = await prisma.run.findUnique({ where: { id } });
+  const current = await findRun(id);
   if (!current) return json({ error: "ไม่พบรายการวิ่ง" }, 404);
 
   if (body.approve) {
-    const saved = await prisma.run.update({ where: { id }, data: { status: "verified" } });
-    return json(toRunEntry(saved));
+    const saved = await updateRun(id, { status: "verified" });
+    return json(toRunEntry(saved ?? current));
   }
 
   const distanceKm = Number(body.distanceKm);
@@ -40,11 +39,15 @@ export async function PATCH(request: Request, { params }: Params) {
   const paceSecPerKm = calcPaceSec(distanceKm, durationSec);
   if (!paceSecPerKm) return json({ error: "คำนวณเพซไม่สำเร็จ" }, 400);
   const flags = detectFlags({ distanceKm, durationSec, paceSecPerKm, calories });
-  const saved = await prisma.run.update({
-    where: { id },
-    data: { distanceKm, durationSec, calories, paceSecPerKm, flags, status: "pending" },
+  const saved = await updateRun(id, {
+    distanceKm,
+    durationSec,
+    calories,
+    paceSecPerKm,
+    flags,
+    status: "pending",
   });
-  return json(toRunEntry(saved));
+  return json(toRunEntry(saved ?? current));
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
@@ -52,7 +55,6 @@ export async function DELETE(_request: Request, { params }: Params) {
   const user = await currentUser();
   if (!user || user.role !== "admin") return json({ error: "เฉพาะผู้ดูแลลบผลวิ่งได้" }, 403);
   const { id } = await params;
-  const prisma = await getPrisma();
-  await prisma.run.delete({ where: { id } }).catch(() => null);
+  await removeRun(id);
   return json({ ok: true });
 }

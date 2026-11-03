@@ -25,7 +25,6 @@ type RegisterInput = {
 
 type RunsContextValue = {
   ready: boolean;
-  bootError: string;
   runs: RunEntry[];
   user: SessionUser | null;
   register: (input: RegisterInput) => Promise<AuthResult>;
@@ -48,18 +47,27 @@ const SEEN_PENDING_KEY = "mu-runzone-seen-pending";
 
 const RunsContext = createContext<RunsContextValue | null>(null);
 
-async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-  const data = (await response.json().catch(() => ({}))) as T & { error?: string };
-  if (!response.ok) throw new Error(data.error || "เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ");
-  return data;
+async function requestJson<T>(url: string, init?: RequestInit, fallback?: T): Promise<T> {
+  try {
+    const response = await fetch(url, {
+      ...init,
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+    });
+    const data = (await response.json().catch(() => ({}))) as T & { error?: string };
+    if (!response.ok) {
+      if (fallback !== undefined && response.status >= 500) return fallback;
+      throw new Error(data.error || "เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ");
+    }
+    return data;
+  } catch (error) {
+    if (fallback !== undefined) return fallback;
+    if (error instanceof Error) throw error;
+    throw new Error("เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ");
+  }
 }
 
 function readSeenPending() {
@@ -80,7 +88,6 @@ export function RunsProvider({ children }: { children: ReactNode }) {
   const [runs, setRuns] = useState<RunEntry[]>([]);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [ready, setReady] = useState(false);
-  const [bootError, setBootError] = useState("");
   const [toasts, setToasts] = useState<ToastNotice[]>([]);
   const runsRef = useRef(runs);
   const userRef = useRef(user);
@@ -107,29 +114,29 @@ export function RunsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refresh = useCallback(async () => {
-    const [nextRuns, session] = await Promise.all([
-      requestJson<RunEntry[]>("/api/runs"),
-      requestJson<{ user: SessionUser | null }>("/api/auth/session"),
-    ]);
-    noteApprovals(nextRuns, session.user);
-    setRuns(nextRuns);
-    setUser(session.user);
-    runsRef.current = nextRuns;
-    userRef.current = session.user;
+    try {
+      const [nextRuns, session] = await Promise.all([
+        requestJson<RunEntry[]>("/api/runs", undefined, []),
+        requestJson<{ user: SessionUser | null }>("/api/auth/session", undefined, {
+          user: userRef.current,
+        }),
+      ]);
+      noteApprovals(nextRuns, session.user);
+      setRuns(nextRuns);
+      setUser(session.user);
+      runsRef.current = nextRuns;
+      userRef.current = session.user;
+    } catch {
+      return;
+    }
   }, [noteApprovals]);
 
   useEffect(() => {
     let cancel = false;
     const boot = window.setTimeout(() => {
-      refresh()
-        .then(() => {
-          if (!cancel) setReady(true);
-        })
-        .catch((error: unknown) => {
-          if (cancel) return;
-          setBootError(error instanceof Error ? error.message : "โหลดข้อมูลโซนวิ่งไม่สำเร็จ");
-          setReady(true);
-        });
+      refresh().finally(() => {
+        if (!cancel) setReady(true);
+      });
     }, 0);
     const timer = window.setInterval(() => {
       refresh().catch(() => undefined);
@@ -232,7 +239,6 @@ export function RunsProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       ready,
-      bootError,
       runs,
       user,
       register,
@@ -246,7 +252,6 @@ export function RunsProvider({ children }: { children: ReactNode }) {
     }),
     [
       ready,
-      bootError,
       runs,
       user,
       register,
@@ -262,9 +267,6 @@ export function RunsProvider({ children }: { children: ReactNode }) {
 
   return (
     <RunsContext.Provider value={value}>
-      {bootError ? (
-        <p className="bg-rose-500/15 px-4 py-3 text-center text-sm text-rose-100">{bootError}</p>
-      ) : null}
       {children}
       <ApprovalToasts notices={toasts} onDismiss={dismissToast} />
     </RunsContext.Provider>

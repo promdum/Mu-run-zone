@@ -1,7 +1,21 @@
-import type { Run } from "@prisma/client";
 import type { RunEntry, RunStatus } from "@/lib/types";
 
-export function toRunEntry(run: Run): RunEntry {
+export function toRunEntry(run: {
+  id: string;
+  userId: string | null;
+  name: string;
+  faculty: string;
+  team: string | null;
+  distanceKm: number;
+  durationSec: number;
+  paceSecPerKm: number | null;
+  calories: number;
+  proofImage: string | null;
+  createdAt: Date;
+  ranAt: Date;
+  status: string;
+  flags: string[];
+}): RunEntry {
   const status: RunStatus = run.status === "pending" ? "pending" : "verified";
   return {
     id: run.id,

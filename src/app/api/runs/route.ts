@@ -2,15 +2,18 @@ import { FACULTIES } from "@/lib/faculties";
 import { calcPaceSec } from "@/lib/format";
 import { json, liveRequest } from "@/lib/http";
 import { detectFlags } from "@/lib/moderation";
-import { getPrisma } from "@/lib/db";
+import { createRun, listRuns, updateUserTeam } from "@/lib/records";
 import { toRunEntry } from "@/lib/run-record";
 import { currentUser } from "@/lib/session";
 
 export async function GET() {
   await liveRequest();
-  const prisma = await getPrisma();
-  const runs = await prisma.run.findMany({ orderBy: { ranAt: "desc" } });
-  return json(runs.map(toRunEntry));
+  try {
+    const runs = await listRuns();
+    return json(runs.map(toRunEntry));
+  } catch {
+    return json([]);
+  }
 }
 
 export async function POST(request: Request) {
@@ -57,27 +60,22 @@ export async function POST(request: Request) {
   const flags = detectFlags({ distanceKm, durationSec, paceSecPerKm: pace, calories });
   const team = body.team?.trim() || null;
 
-  const prisma = await getPrisma();
-  if (team && team !== user.team) {
-    await prisma.user.update({ where: { id: user.id }, data: { team } });
-  }
-  const saved = await prisma.run.create({
-    data: {
-      id: body.id && /^[a-zA-Z0-9-]{8,80}$/.test(body.id) ? body.id : crypto.randomUUID(),
-      userId: user.id,
-      name: user.name,
-      faculty: user.faculty,
-      team,
-      distanceKm,
-      durationSec,
-      paceSecPerKm: pace,
-      calories,
-      proofImage: body.proofImage,
-      createdAt: new Date(),
-      ranAt,
-      status: "pending",
-      flags,
-    },
+  if (team && team !== user.team) await updateUserTeam(user.id, team);
+  const saved = await createRun({
+    id: body.id && /^[a-zA-Z0-9-]{8,80}$/.test(body.id) ? body.id : crypto.randomUUID(),
+    userId: user.id,
+    name: user.name,
+    faculty: user.faculty,
+    team,
+    distanceKm,
+    durationSec,
+    paceSecPerKm: pace,
+    calories,
+    proofImage: body.proofImage,
+    createdAt: new Date(),
+    ranAt,
+    status: "pending",
+    flags,
   });
   return json(toRunEntry(saved), 201);
 }
