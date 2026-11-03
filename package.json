@@ -9,7 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@electric-sql/pglite-socket": "^0.2.18",
+    "@prisma/client": "^6.16.3",
     "next": "16.4.3",
+    "prisma": "^6.16.3",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

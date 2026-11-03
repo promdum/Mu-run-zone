@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id
+  mahidolId    String   @unique @map("mahidol_id")
+  name         String
+  faculty      String
+  team         String?
+  role         String
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @map("created_at")
+  runs         Run[]
+
+  @@map("users")
+}
+
+model Run {
+  id           String   @id
+  userId       String?  @map("user_id")
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name         String
+  faculty      String
+  team         String?
+  distanceKm   Float    @map("distance_km")
+  durationSec  Int      @map("duration_sec")
+  paceSecPerKm Float?   @map("pace_sec_per_km")
+  calories     Int
+  proofImage   String?  @map("proof_image") @db.Text
+  createdAt    DateTime @map("created_at")
+  ranAt        DateTime @map("ran_at")
+  status       String
+  flags        String[]
+
+  @@index([status])
+  @@index([userId])
+  @@map("runs")
+}
