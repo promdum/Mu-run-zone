@@ -33,6 +33,7 @@ async function startLocalPostgres() {
         port: LOCAL_PORT,
         host: "127.0.0.1",
         maxConnections: 12,
+        idleTimeout: 0,
       });
       try {
         await server.start();
@@ -111,6 +112,13 @@ async function ensureAdmin(prisma: PrismaClient) {
       },
     });
   }
+}
+
+export async function resetPrisma() {
+  const client = globalDb.prisma;
+  globalDb.prisma = undefined;
+  globalDb.schemaReady = undefined;
+  if (client) await client.$disconnect().catch(() => undefined);
 }
 
 export async function getPrisma() {

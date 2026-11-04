@@ -112,14 +112,21 @@ export function RunsProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const refreshSeq = useRef(0);
   const refresh = useCallback(async () => {
+    const seq = refreshSeq.current + 1;
+    refreshSeq.current = seq;
     try {
       const [nextRuns, session] = await Promise.all([
         requestJson<RunEntry[]>("/api/runs", { cache: "no-store" }),
         requestJson<{ user: SessionUser | null }>("/api/auth/session", { cache: "no-store" }),
       ]);
-      setUser(session.user);
-      userRef.current = session.user;
+      if (seq !== refreshSeq.current) return;
+      if (session && "user" in session) {
+        setUser(session.user);
+        userRef.current = session.user;
+      }
+      if (!Array.isArray(nextRuns)) return;
       if (nextRuns.length === 0 && runsRef.current.length > 0) return;
       noteApprovals(nextRuns, session.user);
       setRuns(nextRuns);

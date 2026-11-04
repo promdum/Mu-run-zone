@@ -1,8 +1,6 @@
-import { getPrisma } from "@/lib/db";
-import { memoryDb, type MemoryRun, type MemoryUser } from "@/lib/memory-store";
+import { getPrisma, resetPrisma } from "@/lib/db";
+import type { MemoryRun, MemoryUser } from "@/lib/memory-store";
 import type { PrismaClient } from "@prisma/client";
-
-const gate = globalThis as unknown as { muDbDown?: boolean };
 
 function isConnectionError(error: unknown) {
   if (!error || typeof error !== "object") return false;
@@ -11,74 +9,35 @@ function isConnectionError(error: unknown) {
   const message = "message" in error ? String(error.message) : "";
   if (name === "PrismaClientInitializationError") return true;
   if (code === "P1000" || code === "P1001" || code === "P1002" || code === "P1017") return true;
-  return /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|Can't reach database|Connection refused|password authentication failed|getaddrinfo|PGlite|ENOENT|EROFS|EACCES|DATABASE_URL/i.test(
+  return /ECONNRESET|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|Can't reach database|Connection refused|Connection terminated|closed the connection|Idle timeout|password authentication failed|getaddrinfo|PGlite|ENOENT|EROFS|EACCES/i.test(
     message,
   );
 }
 
-function databaseUnavailable() {
-  if (gate.muDbDown) return true;
-  if (process.env.VERCEL) {
-    const url = process.env.DATABASE_URL?.trim() ?? "";
-    if (!url || /127\.0\.0\.1|localhost/i.test(url)) {
-      gate.muDbDown = true;
-      return true;
-    }
-  }
-  return false;
-}
-
-async function readFromPrisma<T>(action: (prisma: PrismaClient) => Promise<T>, fallback: () => Promise<T>): Promise<T> {
-  if (databaseUnavailable()) return fallback();
+async function withPrisma<T>(action: (prisma: PrismaClient) => Promise<T>): Promise<T> {
   try {
-    const prisma = await getPrisma();
-    return await action(prisma);
+    return await action(await getPrisma());
   } catch (error) {
     if (!isConnectionError(error)) throw error;
-    gate.muDbDown = true;
-    return fallback();
+    await resetPrisma();
+    return action(await getPrisma());
   }
 }
 
 export async function listRuns(): Promise<MemoryRun[]> {
-  return readFromPrisma(
-    async (prisma) => prisma.run.findMany({ orderBy: { ranAt: "desc" } }),
-    async () => {
-      const db = await memoryDb();
-      return [...db.runs].sort((a, b) => b.ranAt.getTime() - a.ranAt.getTime());
-    },
-  );
+  return withPrisma((prisma) => prisma.run.findMany({ orderBy: { ranAt: "desc" } }));
 }
 
 export async function listVerifiedRuns(): Promise<MemoryRun[]> {
-  return readFromPrisma(
-    async (prisma) => prisma.run.findMany({ where: { status: "verified" } }),
-    async () => {
-      const db = await memoryDb();
-      return db.runs.filter((run) => run.status === "verified");
-    },
-  );
+  return withPrisma((prisma) => prisma.run.findMany({ where: { status: "verified" } }));
 }
 
 export async function findRun(id: string) {
-  return readFromPrisma(
-    async (prisma) => prisma.run.findUnique({ where: { id } }),
-    async () => {
-      const db = await memoryDb();
-      return db.runs.find((run) => run.id === id) ?? null;
-    },
-  );
+  return withPrisma((prisma) => prisma.run.findUnique({ where: { id } }));
 }
 
 export async function createRun(data: MemoryRun) {
-  return readFromPrisma(
-    async (prisma) => prisma.run.create({ data }),
-    async () => {
-      const db = await memoryDb();
-      db.runs.unshift(data);
-      return data;
-    },
-  );
+  return withPrisma((prisma) => prisma.run.create({ data }));
 }
 
 export async function updateRun(
@@ -92,112 +51,49 @@ export async function updateRun(
     flags?: string[];
   },
 ) {
-  return readFromPrisma(
-    async (prisma) =>
-      prisma.run.update({
-        where: { id },
-        data: {
-          status: data.status,
-          distanceKm: data.distanceKm,
-          durationSec: data.durationSec,
-          calories: data.calories,
-          paceSecPerKm: data.paceSecPerKm,
-          flags: data.flags ? { set: data.flags } : undefined,
-        },
-      }),
-    async () => {
-      const db = await memoryDb();
-      const current = db.runs.find((run) => run.id === id);
-      if (!current) return null;
-      if (data.status !== undefined) current.status = data.status;
-      if (data.distanceKm !== undefined) current.distanceKm = data.distanceKm;
-      if (data.durationSec !== undefined) current.durationSec = data.durationSec;
-      if (data.calories !== undefined) current.calories = data.calories;
-      if (data.paceSecPerKm !== undefined) current.paceSecPerKm = data.paceSecPerKm;
-      if (data.flags !== undefined) current.flags = data.flags;
-      return current;
-    },
+  return withPrisma((prisma) =>
+    prisma.run.update({
+      where: { id },
+      data: {
+        status: data.status,
+        distanceKm: data.distanceKm,
+        durationSec: data.durationSec,
+        calories: data.calories,
+        paceSecPerKm: data.paceSecPerKm,
+        flags: data.flags ? { set: data.flags } : undefined,
+      },
+    }),
   );
 }
 
 export async function approveCleanRuns() {
-  return readFromPrisma(
-    async (prisma) => {
-      const result = await prisma.run.updateMany({
-        where: { status: "pending", flags: { isEmpty: true } },
-        data: { status: "verified" },
-      });
-      return result.count;
-    },
-    async () => {
-      const db = await memoryDb();
-      let count = 0;
-      for (const run of db.runs) {
-        if (run.status === "pending" && run.flags.length === 0) {
-          run.status = "verified";
-          count += 1;
-        }
-      }
-      return count;
-    },
-  );
+  return withPrisma(async (prisma) => {
+    const result = await prisma.run.updateMany({
+      where: { status: "pending", flags: { isEmpty: true } },
+      data: { status: "verified" },
+    });
+    return result.count;
+  });
 }
 
 export async function removeRun(id: string) {
-  await readFromPrisma(
-    async (prisma) => {
-      await prisma.run.delete({ where: { id } }).catch(() => null);
-    },
-    async () => {
-      const db = await memoryDb();
-      db.runs = db.runs.filter((run) => run.id !== id);
-    },
-  );
+  await withPrisma(async (prisma) => {
+    await prisma.run.delete({ where: { id } }).catch(() => null);
+  });
 }
 
 export async function findUserById(id: string) {
-  return readFromPrisma(
-    async (prisma) => prisma.user.findUnique({ where: { id } }),
-    async () => {
-      const db = await memoryDb();
-      return db.users.find((user) => user.id === id) ?? null;
-    },
-  );
+  return withPrisma((prisma) => prisma.user.findUnique({ where: { id } }));
 }
 
 export async function findUserByMahidolId(mahidolId: string) {
-  return readFromPrisma(
-    async (prisma) => prisma.user.findUnique({ where: { mahidolId } }),
-    async () => {
-      const db = await memoryDb();
-      return db.users.find((user) => user.mahidolId === mahidolId) ?? null;
-    },
-  );
+  return withPrisma((prisma) => prisma.user.findUnique({ where: { mahidolId } }));
 }
 
 export async function createUser(data: MemoryUser) {
-  return readFromPrisma(
-    async (prisma) =>
-      prisma.user.create({
-        data,
-      }),
-    async () => {
-      const db = await memoryDb();
-      db.users.push(data);
-      return data;
-    },
-  );
+  return withPrisma((prisma) => prisma.user.create({ data }));
 }
 
 export async function updateUserTeam(id: string, team: string) {
-  await readFromPrisma(
-    async (prisma) => {
-      await prisma.user.update({ where: { id }, data: { team } });
-    },
-    async () => {
-      const db = await memoryDb();
-      const user = db.users.find((item) => item.id === id);
-      if (user) user.team = team;
-    },
-  );
+  await withPrisma((prisma) => prisma.user.update({ where: { id }, data: { team } }));
 }

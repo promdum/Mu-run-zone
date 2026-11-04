@@ -13,10 +13,6 @@ export async function GET() {
       teams: teamStandings(runs),
     });
   } catch {
-    return json({
-      standings: facultyStandings([]),
-      runners: runnerStandings([]),
-      teams: teamStandings([]),
-    });
+    return json({ error: "โหลดลีดเดอร์บอร์ดไม่สำเร็จ" }, 503);
   }
 }
