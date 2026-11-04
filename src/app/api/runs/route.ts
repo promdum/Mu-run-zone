@@ -9,8 +9,10 @@ import { currentUser } from "@/lib/session";
 export async function GET() {
   await liveRequest();
   try {
-    const runs = await listRuns();
-    return json(runs.map(toRunEntry));
+    const [runs, viewer] = await Promise.all([listRuns(), currentUser().catch(() => null)]);
+    const entries = runs.map(toRunEntry);
+    if (viewer?.role === "admin") return json(entries);
+    return json(entries.map(({ proofImage: _proofImage, ...run }) => run));
   } catch {
     return json({ error: "โหลดรายการวิ่งไม่สำเร็จ" }, 503);
   }

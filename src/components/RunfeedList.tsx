@@ -6,10 +6,12 @@ import type { RunStatus } from "@/lib/types";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "./StatusBadge";
-import { useStandings } from "./RunsProvider";
+import { useRuns, useStandings } from "./RunsProvider";
 
 export function RunfeedList({ highlightId }: { highlightId?: string }) {
+  const { user } = useRuns();
   const { ready, feedRuns } = useStandings();
+  const canReviewProof = user?.role === "admin";
   const [photo, setPhoto] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [faculty, setFaculty] = useState("all");
@@ -91,7 +93,9 @@ export function RunfeedList({ highlightId }: { highlightId?: string }) {
           return (
             <article
               key={run.id}
-              className={`grid gap-4 rounded-3xl border p-4 md:grid-cols-[160px_1fr] ${
+              className={`grid gap-4 rounded-3xl border p-4 ${
+                canReviewProof ? "md:grid-cols-[160px_1fr]" : ""
+              } ${
                 highlightId === run.id
                   ? "border-amber-300 bg-amber-300/10"
                   : run.status === "pending"
@@ -99,21 +103,23 @@ export function RunfeedList({ highlightId }: { highlightId?: string }) {
                     : "border-white/10 bg-white/5"
               }`}
             >
-              {run.proofImage ? (
-                <button
-                  type="button"
-                  onClick={() => setPhoto(run.proofImage ?? null)}
-                  aria-label={`ดูหลักฐานของ ${run.name}`}
-                  className="overflow-hidden rounded-2xl bg-[#0b1b38]"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={run.proofImage} alt={`หลักฐานของ ${run.name}`} className="h-40 w-full object-cover" />
-                </button>
-              ) : (
-                <div className="grid h-40 place-items-center rounded-2xl bg-[#0b1b38] text-xs text-white/40">
-                  ไม่มีรูปหลักฐาน
-                </div>
-              )}
+              {canReviewProof ? (
+                run.proofImage ? (
+                  <button
+                    type="button"
+                    onClick={() => setPhoto(run.proofImage ?? null)}
+                    aria-label={`ดูหลักฐานของ ${run.name}`}
+                    className="overflow-hidden rounded-2xl bg-[#0b1b38]"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={run.proofImage} alt={`หลักฐานของ ${run.name}`} className="h-40 w-full object-cover" />
+                  </button>
+                ) : (
+                  <div className="grid h-40 place-items-center rounded-2xl bg-[#0b1b38] text-xs text-white/40">
+                    ไม่มีรูปหลักฐาน
+                  </div>
+                )
+              ) : null}
               <div>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -178,7 +184,7 @@ export function RunfeedList({ highlightId }: { highlightId?: string }) {
           </button>
         </div>
       ) : null}
-      {photo ? (
+      {canReviewProof && photo ? (
         <button type="button" className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-6" onClick={() => setPhoto(null)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={photo} alt="หลักฐานการวิ่ง" className="max-h-full max-w-full rounded-2xl" />
