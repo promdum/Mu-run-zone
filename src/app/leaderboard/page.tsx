@@ -1,11 +1,15 @@
 import { LeaderboardBoard } from "@/components/LeaderboardBoard";
+import { liveRequest } from "@/lib/http";
 import type { Metadata } from "next";
+
+export const instant = false;
 
 export const metadata: Metadata = {
   title: "ลีดเดอร์บอร์ดคณะ",
 };
 
-export default function LeaderboardPage() {
+export default async function LeaderboardPage() {
+  await liveRequest();
   return (
     <div className="space-y-6">
       <header>

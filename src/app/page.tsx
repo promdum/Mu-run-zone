@@ -1,14 +1,18 @@
 import { HomeStats } from "@/components/HomeStats";
 import { RankShield } from "@/components/RankShield";
+import { liveRequest } from "@/lib/http";
 import { getRank, RANKS } from "@/lib/ranks";
 import type { Metadata } from "next";
 import Link from "next/link";
+
+export const instant = false;
 
 export const metadata: Metadata = {
   title: "หน้าแรก",
 };
 
-export default function Home() {
+export default async function Home() {
+  await liveRequest();
   return (
     <div className="space-y-12">
       <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[#08142c]/80 p-8 md:p-12">

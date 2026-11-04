@@ -1,12 +1,16 @@
 import { AdminPanel } from "@/components/AdminPanel";
+import { liveRequest } from "@/lib/http";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+
+export const instant = false;
 
 export const metadata: Metadata = {
   title: "ผู้ดูแลระบบ",
 };
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  await liveRequest();
   return (
     <div className="space-y-6">
       <header>

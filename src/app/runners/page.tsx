@@ -1,11 +1,15 @@
 import { RunnersBoard } from "@/components/RunnersBoard";
+import { liveRequest } from "@/lib/http";
 import type { Metadata } from "next";
+
+export const instant = false;
 
 export const metadata: Metadata = {
   title: "อันดับนักวิ่ง",
 };
 
-export default function RunnersPage() {
+export default async function RunnersPage() {
+  await liveRequest();
   return (
     <div className="space-y-6">
       <header>

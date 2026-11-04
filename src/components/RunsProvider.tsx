@@ -115,16 +115,15 @@ export function RunsProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const [nextRuns, session] = await Promise.all([
-        requestJson<RunEntry[]>("/api/runs", undefined, []),
-        requestJson<{ user: SessionUser | null }>("/api/auth/session", undefined, {
-          user: userRef.current,
-        }),
+        requestJson<RunEntry[]>("/api/runs", { cache: "no-store" }),
+        requestJson<{ user: SessionUser | null }>("/api/auth/session", { cache: "no-store" }),
       ]);
+      setUser(session.user);
+      userRef.current = session.user;
+      if (nextRuns.length === 0 && runsRef.current.length > 0) return;
       noteApprovals(nextRuns, session.user);
       setRuns(nextRuns);
-      setUser(session.user);
       runsRef.current = nextRuns;
-      userRef.current = session.user;
     } catch {
       return;
     }
@@ -193,7 +192,11 @@ export function RunsProvider({ children }: { children: ReactNode }) {
       method: "POST",
       body: JSON.stringify(run),
     });
-    setRuns((prev) => [saved, ...prev.filter((item) => item.id !== saved.id)]);
+    setRuns((prev) => {
+      const next = [saved, ...prev.filter((item) => item.id !== saved.id)];
+      runsRef.current = next;
+      return next;
+    });
     await refresh();
   }, [refresh]);
 
@@ -228,7 +231,11 @@ export function RunsProvider({ children }: { children: ReactNode }) {
 
   const deleteRun = useCallback(async (id: string) => {
     await requestJson(`/api/runs/${id}`, { method: "DELETE" });
-    setRuns((prev) => prev.filter((item) => item.id !== id));
+    setRuns((prev) => {
+      const next = prev.filter((item) => item.id !== id);
+      runsRef.current = next;
+      return next;
+    });
   }, []);
 
   const dismissToast = useCallback((id: string) => {

@@ -1,5 +1,5 @@
 import { calcPaceSec } from "@/lib/format";
-import { json, liveRequest } from "@/lib/http";
+import { json, liveRequest, refreshLivePages } from "@/lib/http";
 import { detectFlags } from "@/lib/moderation";
 import { findRun, removeRun, updateRun } from "@/lib/records";
 import { toRunEntry } from "@/lib/run-record";
@@ -23,6 +23,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
   if (body.approve) {
     const saved = await updateRun(id, { status: "verified" });
+    refreshLivePages();
     return json(toRunEntry(saved ?? current));
   }
 
@@ -47,6 +48,7 @@ export async function PATCH(request: Request, { params }: Params) {
     flags,
     status: "pending",
   });
+  refreshLivePages();
   return json(toRunEntry(saved ?? current));
 }
 
@@ -56,5 +58,6 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (!user || user.role !== "admin") return json({ error: "เฉพาะผู้ดูแลลบผลวิ่งได้" }, 403);
   const { id } = await params;
   await removeRun(id);
+  refreshLivePages();
   return json({ ok: true });
 }

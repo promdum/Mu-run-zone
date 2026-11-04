@@ -1,6 +1,6 @@
 import { FACULTIES } from "@/lib/faculties";
 import { calcPaceSec } from "@/lib/format";
-import { json, liveRequest } from "@/lib/http";
+import { json, liveRequest, refreshLivePages } from "@/lib/http";
 import { detectFlags } from "@/lib/moderation";
 import { createRun, listRuns, updateUserTeam } from "@/lib/records";
 import { toRunEntry } from "@/lib/run-record";
@@ -12,7 +12,7 @@ export async function GET() {
     const runs = await listRuns();
     return json(runs.map(toRunEntry));
   } catch {
-    return json([]);
+    return json({ error: "โหลดรายการวิ่งไม่สำเร็จ" }, 503);
   }
 }
 
@@ -77,5 +77,6 @@ export async function POST(request: Request) {
     status: "pending",
     flags,
   });
+  refreshLivePages();
   return json(toRunEntry(saved), 201);
 }
