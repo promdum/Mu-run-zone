@@ -51,7 +51,10 @@ export function HomeStats() {
                       <RankBadge rank={row.rank} size="sm" />
                     </span>
                   </span>
-                  <span className="shrink-0 font-semibold">{formatKm(row.totalKm)}</span>
+                  <span className="shrink-0 text-right">
+                    <span className="block font-semibold">{formatKm(row.cappedKm)}</span>
+                    <span className="block text-xs text-white/45">{row.runners} คน</span>
+                  </span>
                 </Link>
               </li>
             ))}

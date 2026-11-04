@@ -37,7 +37,7 @@ export function LeaderboardBoard() {
               </div>
               <p className="text-xs uppercase tracking-[0.2em] text-amber-300">อันดับ {i + 1}</p>
               <h3 className="mt-2 text-lg font-semibold">{row.faculty}</h3>
-              <p className="mt-1 text-2xl font-black text-amber-300">{formatKm(row.totalKm)}</p>
+              <p className="mt-1 text-2xl font-black text-amber-300">{formatKm(row.cappedKm)}</p>
               <p className="mt-1 text-sm text-white/60">{row.runners} นักวิ่ง</p>
               <div className="mt-3">
                 <RankBadge rank={row.rank} />
@@ -47,6 +47,7 @@ export function LeaderboardBoard() {
         })}
       </div>
 
+      <p className="text-sm text-white/55">ระยะที่นับตาม SHED128 ไม่เกิน 200 กม. ต่อวัน อันดับใช้ระยะที่นับ</p>
       <div className="overflow-x-auto rounded-3xl border border-white/10">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-white/5 text-white/60">
@@ -55,6 +56,7 @@ export function LeaderboardBoard() {
               <th className="px-4 py-3">คณะ / หน่วยงาน</th>
               <th className="px-4 py-3">แรงค์</th>
               <th className="px-4 py-3">ระยะรวม</th>
+              <th className="px-4 py-3">ระยะที่นับ</th>
               <th className="px-4 py-3">นักวิ่ง</th>
               <th className="px-4 py-3">ไปยังแรงค์ถัดไป</th>
             </tr>
@@ -78,6 +80,7 @@ export function LeaderboardBoard() {
                     </div>
                   </td>
                   <td className="px-4 py-4 font-semibold">{formatKm(row.totalKm)}</td>
+                  <td className="px-4 py-4 font-semibold text-amber-200">{formatKm(row.cappedKm)}</td>
                   <td className="px-4 py-4">{row.runners} คน</td>
                   <td className="px-4 py-4">
                     {next ? (

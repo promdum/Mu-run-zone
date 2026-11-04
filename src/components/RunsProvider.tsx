@@ -1,6 +1,7 @@
 "use client";
 
 import { formatKm } from "@/lib/format";
+import { DEMO_MODE, demoRuns } from "@/lib/mockData";
 import { facultyStandings, runnerStandings, teamStandings } from "@/lib/ranks";
 import type { AuthResult, RunEntry, UserAccount } from "@/lib/types";
 import {
@@ -84,7 +85,7 @@ function writeSeenPending(ids: string[]) {
 }
 
 export function RunsProvider({ children }: { children: ReactNode }) {
-  const [runs, setRuns] = useState<RunEntry[]>([]);
+  const [runs, setRuns] = useState<RunEntry[]>(DEMO_MODE ? demoRuns : []);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [ready, setReady] = useState(false);
   const [toasts, setToasts] = useState<ToastNotice[]>([]);
@@ -117,6 +118,17 @@ export function RunsProvider({ children }: { children: ReactNode }) {
     const seq = refreshSeq.current + 1;
     refreshSeq.current = seq;
     try {
+      if (DEMO_MODE) {
+        const session = await requestJson<{ user: SessionUser | null }>("/api/auth/session", {
+          cache: "no-store",
+        });
+        if (seq !== refreshSeq.current) return;
+        if (session && "user" in session) {
+          setUser(session.user);
+          userRef.current = session.user;
+        }
+        return;
+      }
       const [nextRuns, session] = await Promise.all([
         requestJson<RunEntry[]>("/api/runs", { cache: "no-store" }),
         requestJson<{ user: SessionUser | null }>("/api/auth/session", { cache: "no-store" }),

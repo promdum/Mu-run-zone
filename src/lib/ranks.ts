@@ -1,4 +1,5 @@
 import { FACULTIES } from "./faculties";
+import { demoCappedKm } from "./mockData";
 import type { FacultyStanding, RankId, RunEntry, RunnerStanding, TeamStanding } from "./types";
 
 export const RANKS: {
@@ -102,10 +103,13 @@ function toFacultyStanding(
   faculty: string,
   value: { totalKm: number; totalRuns: number; runners: Set<string> },
 ): FacultyStanding {
-  const ranked = rankFromKm(value.totalKm);
+  const totalKm = Math.round(value.totalKm * 10) / 10;
+  const cappedKm = demoCappedKm(faculty, totalKm);
+  const ranked = rankFromKm(totalKm);
   return {
     faculty,
-    totalKm: value.totalKm,
+    totalKm,
+    cappedKm,
     totalRuns: value.totalRuns,
     runners: value.runners.size,
     rank: ranked.current.id,
@@ -139,7 +143,12 @@ export function facultyStandings(runs: RunEntry[]): FacultyStanding[] {
 
   return [...map.entries()]
     .map(([faculty, value]) => toFacultyStanding(faculty, value))
-    .sort((a, b) => b.totalKm - a.totalKm || a.faculty.localeCompare(b.faculty, "th"));
+    .sort(
+      (a, b) =>
+        b.cappedKm - a.cappedKm ||
+        b.runners - a.runners ||
+        a.faculty.localeCompare(b.faculty, "th"),
+    );
 }
 
 export function runnerStandings(runs: RunEntry[]): RunnerStanding[] {

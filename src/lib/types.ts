@@ -42,6 +42,7 @@ export type UserAccount = {
 export type FacultyStanding = {
   faculty: string;
   totalKm: number;
+  cappedKm: number;
   totalRuns: number;
   runners: number;
   rank: RankId;
