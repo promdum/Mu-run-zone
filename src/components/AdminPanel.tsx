@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDate, formatDuration, formatKm, formatPace, parseHms, splitDuration } from "@/lib/format";
+import { formatCount, formatDate, formatDuration, formatKm, formatPace, parseHms, splitDuration } from "@/lib/format";
 import { detectFlags } from "@/lib/moderation";
 import type { RunEntry } from "@/lib/types";
 import { FormEvent, useMemo, useState } from "react";
@@ -174,8 +174,8 @@ export function AdminPanel() {
   return (
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="รอตรวจ" value={`${pendingCount.toLocaleString()} รายการ`} />
-        <Stat label="ถูกตั้งธง" value={`${flaggedCount.toLocaleString()} รายการ`} />
+        <Stat label="รอตรวจ" value={`${formatCount(pendingCount)} รายการ`} />
+        <Stat label="ถูกตั้งธง" value={`${formatCount(flaggedCount)} รายการ`} />
         <Stat label="ผู้ดูแล" value={user.name} />
       </div>
 
@@ -250,7 +250,7 @@ export function AdminPanel() {
                     <Mini label="ระยะ" value={formatKm(run.distanceKm)} />
                     <Mini label="เวลา" value={formatDuration(run.durationSec)} />
                     <Mini label="เพซ" value={formatPace(run.paceSecPerKm)} />
-                    <Mini label="แคลอรี่" value={`${run.calories.toLocaleString()} kcal`} />
+                    <Mini label="แคลอรี่" value={`${formatCount(run.calories)} kcal`} />
                   </dl>
                   <p className="mt-2 text-xs text-white/45">วิ่งเมื่อ {formatDate(run.ranAt)}</p>
                   {run.flags.length > 0 ? (

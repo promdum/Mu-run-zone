@@ -1,6 +1,6 @@
 "use client";
 
-import { formatKm } from "@/lib/format";
+import { formatCount, formatKm } from "@/lib/format";
 import { encodeRunnerSlug, slugFromFaculty } from "@/lib/faculties";
 import Link from "next/link";
 import { RankBadge } from "./RankBadge";
@@ -23,9 +23,9 @@ export function HomeStats() {
     <div className="space-y-8">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="ระยะทางรวมทั้งโซน" value={formatKm(totalKm)} />
-        <Stat label="กิจกรรมวิ่ง" value={`${runs.length.toLocaleString()} รายการ`} />
-        <Stat label="นักวิ่ง" value={`${runners.length.toLocaleString()} คน`} />
-        <Stat label="แคลอรี่รวม" value={`${calories.toLocaleString()} kcal`} />
+        <Stat label="กิจกรรมวิ่ง" value={`${formatCount(runs.length)} รายการ`} />
+        <Stat label="นักวิ่ง" value={`${formatCount(runners.length)} คน`} />
+        <Stat label="แคลอรี่รวม" value={`${formatCount(calories)} kcal`} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -107,7 +107,7 @@ export function HomeStats() {
               <p className="font-semibold">{run.name}</p>
               <p className="text-sm text-amber-200/80">{run.faculty}</p>
               <p className="mt-2 text-white/70">
-                {formatKm(run.distanceKm)} · {run.calories.toLocaleString()} kcal
+                {formatKm(run.distanceKm)} · {formatCount(run.calories)} kcal
               </p>
             </Link>
           ))}

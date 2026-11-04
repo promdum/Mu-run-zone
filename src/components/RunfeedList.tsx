@@ -1,7 +1,7 @@
 "use client";
 
 import { encodeRunnerSlug, FACULTIES } from "@/lib/faculties";
-import { formatDate, formatDuration, formatKm, formatPace } from "@/lib/format";
+import { formatCount, formatDate, formatDuration, formatKm, formatPace } from "@/lib/format";
 import type { RunStatus } from "@/lib/types";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -137,7 +137,7 @@ export function RunfeedList({ highlightId }: { highlightId?: string }) {
                   <Stat label="ระยะทาง" value={formatKm(run.distanceKm)} />
                   <Stat label="เวลารวม" value={formatDuration(run.durationSec)} />
                   <Stat label="เพซ" value={formatPace(run.paceSecPerKm)} />
-                  <Stat label="แคลอรี่" value={`${run.calories.toLocaleString()} kcal`} />
+                  <Stat label="แคลอรี่" value={`${formatCount(run.calories)} kcal`} />
                 </dl>
               </div>
             </article>

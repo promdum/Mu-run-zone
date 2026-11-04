@@ -1,7 +1,7 @@
 "use client";
 
 import { decodeRunnerSlug, slugFromFaculty } from "@/lib/faculties";
-import { formatDate, formatDuration, formatKm, formatPace } from "@/lib/format";
+import { formatCount, formatDate, formatDuration, formatKm, formatPace } from "@/lib/format";
 import Link from "next/link";
 import { RankShield } from "./RankShield";
 import { StatusBadge } from "./StatusBadge";
@@ -60,7 +60,7 @@ export function RunnerProfile({ slug }: { slug: string }) {
         <dl className="mt-6 grid gap-3 sm:grid-cols-4">
           <Mini label="ระยะรวม" value={formatKm(standing?.totalKm ?? 0)} />
           <Mini label="ครั้งที่อนุมัติ" value={`${standing?.totalRuns ?? 0}`} />
-          <Mini label="แคลอรี่" value={`${(standing?.calories ?? 0).toLocaleString()} kcal`} />
+          <Mini label="แคลอรี่" value={`${formatCount(standing?.calories ?? 0)} kcal`} />
           <Mini label="เพซดีที่สุด" value={formatPace(standing?.bestPaceSec)} />
         </dl>
           </div>

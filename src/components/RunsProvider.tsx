@@ -71,7 +71,6 @@ async function requestJson<T>(url: string, init?: RequestInit, fallback?: T): Pr
 }
 
 function readSeenPending() {
-  if (typeof window === "undefined") return [] as string[];
   try {
     const parsed = JSON.parse(window.localStorage.getItem(SEEN_PENDING_KEY) || "[]") as string[];
     return Array.isArray(parsed) ? parsed : [];

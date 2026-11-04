@@ -22,12 +22,22 @@ export function formatPace(secPerKm?: number) {
   return `${m}:${String(s).padStart(2, "0")} /กม.`;
 }
 
+export function formatCount(value: number) {
+  const rounded = Math.round(value);
+  const negative = rounded < 0;
+  const grouped = Math.abs(rounded)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return negative ? `-${grouped}` : grouped;
+}
+
 export function formatKm(km: number) {
   const rounded = Math.round(km * 10) / 10;
-  return `${rounded.toLocaleString("th-TH", {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1,
-  })} กม.`;
+  const negative = rounded < 0;
+  const [whole, fraction] = Math.abs(rounded).toFixed(1).split(".");
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const text = fraction === "0" ? grouped : `${grouped}.${fraction}`;
+  return `${negative ? "-" : ""}${text} กม.`;
 }
 
 export function calcPaceSec(distanceKm: number, durationSec: number) {
@@ -39,9 +49,16 @@ export function parseHms(hours: number, minutes: number, seconds: number) {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
+const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
 export function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("th-TH", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  const bangkok = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  const day = bangkok.getUTCDate();
+  const month = THAI_MONTHS[bangkok.getUTCMonth()];
+  const year = bangkok.getUTCFullYear() + 543;
+  const hour = String(bangkok.getUTCHours()).padStart(2, "0");
+  const minute = String(bangkok.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${year} ${hour}:${minute}`;
 }

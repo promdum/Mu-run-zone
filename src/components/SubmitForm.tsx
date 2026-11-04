@@ -6,7 +6,7 @@ import { compressImage } from "@/lib/storage";
 import type { RunEntry } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRuns } from "./RunsProvider";
 
 function nowLocalInput() {
@@ -26,10 +26,19 @@ export function SubmitForm() {
   const [seconds, setSeconds] = useState("0");
   const [pace, setPace] = useState("");
   const [calories, setCalories] = useState("");
-  const [ranAt, setRanAt] = useState(nowLocalInput);
+  const [isMounted, setIsMounted] = useState(false);
+  const [ranAt, setRanAt] = useState("");
   const [preview, setPreview] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsMounted(true);
+      setRanAt(nowLocalInput());
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const teamValue = teamEdited ? team : (user?.team ?? "");
 
@@ -37,7 +46,7 @@ export function SubmitForm() {
   const km = Number(distance);
   const autoPace = useMemo(() => calcPaceSec(km, durationSec), [km, durationSec]);
 
-  if (!ready) return <p className="text-white/60">กำลังเปิดฟอร์ม...</p>;
+  if (!isMounted || !ready) return <p className="text-white/60">กำลังเปิดฟอร์ม...</p>;
   if (!user) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center">

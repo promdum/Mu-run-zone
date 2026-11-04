@@ -10,7 +10,6 @@ export type ApprovalNotice = {
 };
 
 function readAll(): ApprovalNotice[] {
-  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];

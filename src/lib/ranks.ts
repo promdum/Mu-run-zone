@@ -218,6 +218,8 @@ export function getRank(id: RankId) {
 
 export function rankBand(id: RankId) {
   const rank = getRank(id);
-  if (rank.maxKm === null) return `${rank.minKm.toLocaleString("th-TH")}+ กม.`;
-  return `${rank.minKm.toLocaleString("th-TH")}–${rank.maxKm.toLocaleString("th-TH")} กม.`;
+  const min = String(rank.minKm).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  if (rank.maxKm === null) return `${min}+ กม.`;
+  const max = String(rank.maxKm).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${min}–${max} กม.`;
 }
