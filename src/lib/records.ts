@@ -2,7 +2,7 @@ import { getPrisma, resetPrisma } from "@/lib/db";
 import type { MemoryRun, MemoryUser } from "@/lib/memory-store";
 import type { PrismaClient } from "@prisma/client";
 
-function isConnectionError(error: unknown) {
+export function isConnectionError(error: unknown) {
   if (!error || typeof error !== "object") return false;
   const name = "name" in error ? String(error.name) : "";
   const code = "code" in error ? String(error.code) : "";

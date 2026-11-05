@@ -1,6 +1,7 @@
+import { demoAccountById } from "@/lib/demo-auth";
+import { isConnectionError, findUserById } from "@/lib/records";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { findUserById } from "@/lib/records";
 const COOKIE = "mu-runzone-session";
 
 function secret() {
@@ -29,7 +30,12 @@ export async function currentUser() {
   const jar = await cookies();
   const userId = readSessionUserId(jar.get(COOKIE)?.value);
   if (!userId) return null;
-  return findUserById(userId);
+  try {
+    return await findUserById(userId);
+  } catch (error) {
+    if (!isConnectionError(error)) throw error;
+    return demoAccountById(userId);
+  }
 }
 
 export async function setSessionCookie(userId: string) {
@@ -53,7 +59,7 @@ export function publicUser(user: {
   mahidolId: string;
   name: string;
   faculty: string;
-  team: string | null;
+  team?: string | null;
   role: string;
   createdAt: Date | string;
 }) {
